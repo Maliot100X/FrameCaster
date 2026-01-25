@@ -58,7 +58,7 @@ export function ProfileView() {
             fid: user.fid,
             username: user.username,
             display_name: user.display_name || user.username,
-            pfp_url: user.pfp_url,
+            pfp_url: user.pfp_url || "",
             verifications: user.verifications,
         });
       }

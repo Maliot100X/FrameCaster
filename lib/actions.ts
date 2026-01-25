@@ -4,7 +4,7 @@ import neynarClient from "@/lib/neynar";
 
 export async function getUserInfo(fid: number) {
   try {
-    const user = await neynarClient.fetchBulkUsers([fid]);
+    const user = await neynarClient.fetchBulkUsers({ fids: [fid] });
     if (user.users && user.users.length > 0) {
       return user.users[0];
     }
