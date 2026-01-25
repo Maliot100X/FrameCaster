@@ -1,52 +1,27 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CoinCard, type Coin } from "@/components/coin-card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const MOCK_COINS: Coin[] = [
-  {
-    id: "1",
-    name: "Based Pup",
-    ticker: "PUP",
-    image: "https://api.dicebear.com/7.x/shapes/svg?seed=PUP&backgroundColor=ffdfbf",
-    marketCap: "$12.5k",
-    holders: 142,
-    creator: { fid: 123, avatar: "https://github.com/shadcn.png", username: "dwr.eth" },
-    isBoosted: true,
-    change24h: 24.5
-  },
-  {
-    id: "2",
-    name: "Zora Orb",
-    ticker: "ORB",
-    image: "https://api.dicebear.com/7.x/shapes/svg?seed=ORB&backgroundColor=c0aede",
-    marketCap: "$450k",
-    holders: 1205,
-    creator: { fid: 456, avatar: "https://github.com/vercel.png", username: "zora" },
-    change24h: -5.2
-  },
-  {
-    id: "3",
-    name: "Farcaster OG",
-    ticker: "FCOG",
-    image: "https://api.dicebear.com/7.x/shapes/svg?seed=FCOG&backgroundColor=b6e3f4",
-    marketCap: "$2.1M",
-    holders: 5430,
-    creator: { fid: 789, avatar: "https://github.com/farcaster.png", username: "v" },
-    change24h: 12.0
-  },
-  {
-    id: "4",
-    name: "Meme Coin",
-    ticker: "MEME",
-    image: "https://api.dicebear.com/7.x/shapes/svg?seed=MEME&backgroundColor=ffd5dc",
-    marketCap: "$5k",
-    holders: 45,
-    creator: { fid: 101, avatar: "https://github.com/base.png", username: "jesse" },
-    change24h: 0
-  },
-];
+function CoinCardSkeleton() {
+  return (
+    <div className="rounded-xl border border-border/50 bg-card/50 p-4 flex gap-4">
+      <Skeleton className="h-16 w-16 rounded-lg" />
+      <div className="flex flex-col justify-between flex-1 space-y-2">
+        <div className="flex justify-between">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-5 w-12" />
+        </div>
+        <Skeleton className="h-4 w-32" />
+        <div className="flex justify-between pt-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-16" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function HomeView() {
   return (
@@ -70,18 +45,18 @@ export function HomeView() {
         <ScrollArea className="flex-1 px-4">
           <TabsContent value="new" className="space-y-3 pb-20 mt-0">
              <p className="text-xs text-muted-foreground py-2 font-medium">Latest coins launched on Base</p>
-             {MOCK_COINS.map((coin) => (
-               <CoinCard key={coin.id} coin={coin} />
-             ))}
-             {MOCK_COINS.map((coin) => (
-               <CoinCard key={coin.id + 'dup'} coin={{...coin, id: coin.id + 'dup'}} />
-             ))}
+             <CoinCardSkeleton />
+             <CoinCardSkeleton />
+             <CoinCardSkeleton />
+             <div className="text-center py-8 text-muted-foreground text-sm">
+                 Loading coins...
+             </div>
           </TabsContent>
           <TabsContent value="boosted" className="space-y-3 pb-20 mt-0">
             <p className="text-xs text-muted-foreground py-2 font-medium">Featured community coins</p>
-            {MOCK_COINS.filter(c => c.isBoosted).map((coin) => (
-               <CoinCard key={coin.id} coin={coin} />
-             ))}
+             <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                <p>No boosted coins yet.</p>
+             </div>
           </TabsContent>
           <TabsContent value="grad" className="space-y-3 pb-20 mt-0">
              <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
@@ -89,9 +64,9 @@ export function HomeView() {
              </div>
           </TabsContent>
           <TabsContent value="trend" className="space-y-3 pb-20 mt-0">
-             {MOCK_COINS.sort((a,b) => (b.change24h||0) - (a.change24h||0)).map((coin) => (
-               <CoinCard key={coin.id} coin={coin} />
-             ))}
+             <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                <p>Not enough data for trending.</p>
+             </div>
           </TabsContent>
         </ScrollArea>
       </Tabs>

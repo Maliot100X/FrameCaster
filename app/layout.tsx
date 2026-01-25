@@ -9,6 +9,22 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "FrameCaster",
   description: "Launch coins on Zora via Farcaster",
+  other: {
+    "fc:frame": JSON.stringify({
+      version: "next",
+      imageUrl: `${process.env.NEXT_PUBLIC_APP_URL}/opengraph-image`,
+      button: {
+        title: "Launch App",
+        action: {
+          type: "launch_frame",
+          name: "FrameCaster",
+          url: process.env.NEXT_PUBLIC_APP_URL,
+          splashImageUrl: `${process.env.NEXT_PUBLIC_APP_URL}/splash.png`,
+          splashBackgroundColor: "#000000",
+        },
+      },
+    }),
+  },
 };
 
 export default function RootLayout({
