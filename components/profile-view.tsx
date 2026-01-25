@@ -3,14 +3,16 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Wallet, LogOut, User, ExternalLink, RefreshCw, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Wallet, LogOut, User, RefreshCw, Loader2 } from "lucide-react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useEffect, useState, useCallback } from "react";
 import { getUserInfo } from "@/lib/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import sdk from "@farcaster/frame-sdk";
+import { useQuery } from "@tanstack/react-query";
+import { getCoinsOwned, getCoinsCreated } from "@/lib/zora";
+import { CoinCard, Coin } from "./coin-card";
 
 type FarcasterUser = {
   fid: number;
@@ -47,10 +49,7 @@ export function ProfileView() {
   const handleSync = useCallback(async (fidToSync?: number) => {
     setIsSyncing(true);
     try {
-      // If we have a FID from context (or argument), use it. 
-      // Otherwise we might default to a hardcoded one for dev or prompt user.
-      // For this phase, we'll try to use the one passed or state.
-      const targetFid = fidToSync || contextFid || 1; // Default to 1 (warpcast) if no context for dev
+      const targetFid = fidToSync || contextFid || 1; 
       
       const user = await getUserInfo(targetFid);
       if (user) {
@@ -74,6 +73,44 @@ export function ProfileView() {
     if (connector) {
       connect({ connector });
     }
+  };
+
+  const { data: holdings, isLoading: isLoadingHoldings } = useQuery({
+    queryKey: ['coins', 'holdings', address],
+    enabled: !!address,
+    queryFn: async () => {
+        // @ts-ignore
+        const res = await getCoinsOwned({ chainId: 8453, address }) as any;
+        return res?.coins || res || [];
+    }
+  });
+
+  const { data: created, isLoading: isLoadingCreated } = useQuery({
+    queryKey: ['coins', 'created', address],
+    enabled: !!address,
+    queryFn: async () => {
+        // @ts-ignore
+        const res = await getCoinsCreated({ chainId: 8453, address }) as any;
+        return res?.coins || res || [];
+    }
+  });
+
+  const mapToCoin = (item: any): Coin => {
+    return {
+      id: item.address || item.id,
+      name: item.name || "Unknown",
+      ticker: item.symbol || "UNK",
+      image: item.imageURI || item.image || item.tokenURI || "", 
+      marketCap: item.marketCap ? `$${Number(item.marketCap).toLocaleString()}` : 'N/A',
+      holders: item.holderCount || 0,
+      creator: {
+        fid: item.creator?.fid || 0,
+        avatar: item.creator?.pfp || "",
+        username: item.creator?.username || item.creator?.address?.slice(0, 6) || "Unknown"
+      },
+      change24h: item.change24h || 0,
+      isBoosted: false
+    };
   };
 
   return (
@@ -145,7 +182,7 @@ export function ProfileView() {
                  <Button 
                     variant="outline" 
                     className="w-full justify-start h-14 text-left font-normal relative overflow-hidden group border-blue-500/30"
-                    onClick={() => handleConnect('farcaster-frame')} // Assuming ID from @farcaster/miniapp-wagmi-connector
+                    onClick={() => handleConnect('farcaster-frame')} 
                  >
                       <div className="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center mr-3 text-blue-500">
@@ -160,7 +197,7 @@ export function ProfileView() {
                   <Button 
                     variant="outline" 
                     className="w-full justify-start h-14 text-left font-normal"
-                    onClick={() => handleConnect('io.metamask')} // Or 'injected'
+                    onClick={() => handleConnect('io.metamask')} 
                   >
                       <div className="h-10 w-10 rounded-full bg-orange-500/20 flex items-center justify-center mr-3 text-orange-500">
                           <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MM" className="h-6 w-6" />
@@ -181,22 +218,38 @@ export function ProfileView() {
               <TabsTrigger value="created">Created</TabsTrigger>
           </TabsList>
           <ScrollArea className="h-[200px] mt-2 rounded-md border p-4">
-              <TabsContent value="holdings" className="mt-0">
+              <TabsContent value="holdings" className="mt-0 space-y-2">
                   {isConnected ? (
-                       <div className="text-center py-8 text-muted-foreground text-sm">
-                          No coins held yet.
-                       </div>
+                       isLoadingHoldings ? (
+                           <div className="text-center py-8 text-muted-foreground text-sm">Loading holdings...</div>
+                       ) : holdings && holdings.length > 0 ? (
+                           holdings.map((coin: any) => (
+                               <CoinCard key={coin.address || coin.id} coin={mapToCoin(coin)} />
+                           ))
+                       ) : (
+                           <div className="text-center py-8 text-muted-foreground text-sm">
+                              No coins held yet.
+                           </div>
+                       )
                   ) : (
                       <div className="text-center py-8 text-muted-foreground text-sm">
                           Connect wallet to see holdings.
                       </div>
                   )}
               </TabsContent>
-               <TabsContent value="created" className="mt-0">
+               <TabsContent value="created" className="mt-0 space-y-2">
                   {isConnected ? (
-                       <div className="text-center py-8 text-muted-foreground text-sm">
-                          No coins created yet.
-                       </div>
+                       isLoadingCreated ? (
+                           <div className="text-center py-8 text-muted-foreground text-sm">Loading created coins...</div>
+                       ) : created && created.length > 0 ? (
+                           created.map((coin: any) => (
+                               <CoinCard key={coin.address || coin.id} coin={mapToCoin(coin)} />
+                           ))
+                       ) : (
+                           <div className="text-center py-8 text-muted-foreground text-sm">
+                              No coins created yet.
+                           </div>
+                       )
                   ) : (
                       <div className="text-center py-8 text-muted-foreground text-sm">
                           Connect wallet to see created coins.
@@ -205,12 +258,6 @@ export function ProfileView() {
               </TabsContent>
           </ScrollArea>
       </Tabs>
-
-      <div className="mt-auto pt-4 flex justify-center">
-          <a href="https://github.com/Maliot100X/FrameCaster" target="_blank" className="text-xs text-muted-foreground flex items-center gap-1 hover:text-foreground transition-colors">
-              View on GitHub <ExternalLink className="h-3 w-3" />
-          </a>
-      </div>
     </div>
   );
 }
