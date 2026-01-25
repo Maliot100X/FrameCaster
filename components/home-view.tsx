@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { getCoinsNew, getCoinsTrending } from "@/lib/zora";
+import { getNewCoins, getTrendingCoins } from "@/lib/zora";
 import { CoinCard, Coin } from "./coin-card";
 import { supabase } from "@/lib/supabase";
 
@@ -31,18 +31,16 @@ export function HomeView() {
   const { data: newCoins, isLoading: isLoadingNew } = useQuery({
     queryKey: ['coins', 'new'],
     queryFn: async () => {
-      // @ts-ignore
-      const res = await getCoinsNew({ chainId: 8453, limit: 10 }) as any;
-      return res?.coins || res || [];
+      const res = await getNewCoins();
+      return res;
     }
   });
 
   const { data: trendingCoins, isLoading: isLoadingTrending } = useQuery({
     queryKey: ['coins', 'trending'],
     queryFn: async () => {
-       // @ts-ignore
-      const res = await getCoinsTrending({ chainId: 8453, limit: 10 }) as any;
-      return res?.coins || res || [];
+      const res = await getTrendingCoins();
+      return res;
     }
   });
 
@@ -73,12 +71,12 @@ export function HomeView() {
     }
   });
 
-  const mapToCoin = (item: any): Coin => {
+  const mapToCoin = (item: any, isBoosted = false): Coin => {
     return {
       id: item.address || item.id,
       name: item.name || "Unknown",
       ticker: item.symbol || "UNK",
-      image: item.imageURI || item.image || item.tokenURI || "", 
+      image: item.imageURI || item.image || item.tokenURI || "https://framecaster-jade.vercel.app/vercel.svg", 
       marketCap: item.marketCap ? `$${Number(item.marketCap).toLocaleString()}` : 'N/A',
       holders: item.holderCount || 0,
       creator: {
@@ -87,7 +85,7 @@ export function HomeView() {
         username: item.creator?.username || item.creator?.address?.slice(0, 6) || "Unknown"
       },
       change24h: item.change24h || 0,
-      isBoosted: false // Todo: implement boosted logic
+      isBoosted: isBoosted
     };
   };
 
@@ -100,103 +98,52 @@ export function HomeView() {
       </div>
       
       <Tabs defaultValue="new" className="flex-1 flex flex-col">
-        <div className="px-4 py-2">
-          <TabsList className="grid w-full grid-cols-4 h-9">
-            <TabsTrigger value="new" className="text-xs">New</TabsTrigger>
-            <TabsTrigger value="boosted" className="text-xs">Boosted</TabsTrigger>
-            <TabsTrigger value="grad" className="text-xs">Grad</TabsTrigger>
-            <TabsTrigger value="trend" className="text-xs">Top</TabsTrigger>
-          </TabsList>
-        </div>
+        <TabsList className="grid w-full grid-cols-4 px-4 my-2">
+          <TabsTrigger value="new">New</TabsTrigger>
+          <TabsTrigger value="trending">Hot</TabsTrigger>
+          <TabsTrigger value="boosted">Boost</TabsTrigger>
+          <TabsTrigger value="graduated">Grad</TabsTrigger>
+        </TabsList>
 
         <ScrollArea className="flex-1 px-4">
-          <TabsContent value="new" className="space-y-3 pb-20 mt-0">
-             <p className="text-xs text-muted-foreground py-2 font-medium">Latest coins launched on Base</p>
-             {isLoadingNew ? (
-                <>
-                    <CoinCardSkeleton />
-                    <CoinCardSkeleton />
-                    <CoinCardSkeleton />
-                </>
-             ) : newCoins && newCoins.length > 0 ? (
-                newCoins.map((coin: any) => (
-                    <CoinCard key={coin.address || coin.id} coin={mapToCoin(coin)} />
-                ))
-             ) : (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                    No new coins found.
-                </div>
-             )}
+          <TabsContent value="new" className="space-y-4 pb-4">
+            {isLoadingNew ? (
+              Array(3).fill(0).map((_, i) => <CoinCardSkeleton key={i} />)
+            ) : newCoins && newCoins.length > 0 ? (
+              newCoins.map((item: any) => <CoinCard key={item.address || item.id} coin={mapToCoin(item)} />)
+            ) : (
+              <div className="text-center text-muted-foreground py-10">No new coins found.</div>
+            )}
           </TabsContent>
 
-          <TabsContent value="boosted" className="space-y-3 pb-20 mt-0">
-            <p className="text-xs text-muted-foreground py-2 font-medium">Featured community coins</p>
-             {isLoadingBoosted ? (
-                <>
-                    <CoinCardSkeleton />
-                    <CoinCardSkeleton />
-                </>
-             ) : boostedCoins && boostedCoins.length > 0 ? (
-                boostedCoins.map((boost: any) => (
-                    // We need to fetch coin details for the boost. 
-                    // This is a placeholder since we don't have the full coin object stored in boosts table usually
-                    // Ideally we join tables. For now assuming we have some metadata or fetching it.
-                    <div key={boost.id} className="p-4 border rounded-xl text-center text-sm">
-                        Coin: {boost.coin_address} (Boosted)
-                    </div>
-                ))
-             ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                   <p>No boosted coins yet.</p>
-                </div>
-             )}
+          <TabsContent value="trending" className="space-y-4 pb-4">
+            {isLoadingTrending ? (
+              Array(3).fill(0).map((_, i) => <CoinCardSkeleton key={i} />)
+            ) : trendingCoins && trendingCoins.length > 0 ? (
+              trendingCoins.map((item: any) => <CoinCard key={item.address || item.id} coin={mapToCoin(item)} />)
+            ) : (
+              <div className="text-center text-muted-foreground py-10">No trending coins found.</div>
+            )}
           </TabsContent>
 
-          <TabsContent value="grad" className="space-y-3 pb-20 mt-0">
-             {isLoadingGrad ? (
-                <>
-                    <CoinCardSkeleton />
-                    <CoinCardSkeleton />
-                </>
-             ) : graduatedCoins && graduatedCoins.length > 0 ? (
-                graduatedCoins.map((coin: any) => (
-                    <CoinCard key={coin.id} coin={{
-                        id: coin.coin_address,
-                        name: coin.name,
-                        ticker: coin.ticker,
-                        image: coin.image_uri,
-                        marketCap: "Graduated",
-                        holders: 0,
-                        creator: {
-                            fid: coin.creator_fid,
-                            avatar: "",
-                            username: "Creator"
-                        },
-                        isBoosted: true
-                    }} />
-                ))
-             ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                    <p>No graduated coins yet.</p>
-                </div>
-             )}
+          <TabsContent value="boosted" className="space-y-4 pb-4">
+            {isLoadingBoosted ? (
+              Array(3).fill(0).map((_, i) => <CoinCardSkeleton key={i} />)
+            ) : boostedCoins && boostedCoins.length > 0 ? (
+              boostedCoins.map((item: any) => <CoinCard key={item.address || item.id} coin={mapToCoin(item, true)} />)
+            ) : (
+              <div className="text-center text-muted-foreground py-10">No boosted coins active.</div>
+            )}
           </TabsContent>
 
-          <TabsContent value="trend" className="space-y-3 pb-20 mt-0">
-             {isLoadingTrending ? (
-                <>
-                    <CoinCardSkeleton />
-                    <CoinCardSkeleton />
-                </>
-             ) : trendingCoins && trendingCoins.length > 0 ? (
-                trendingCoins.map((coin: any) => (
-                    <CoinCard key={coin.address || coin.id} coin={mapToCoin(coin)} />
-                ))
-             ) : (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                    Not enough data for trending.
-                </div>
-             )}
+          <TabsContent value="graduated" className="space-y-4 pb-4">
+            {isLoadingGrad ? (
+              Array(3).fill(0).map((_, i) => <CoinCardSkeleton key={i} />)
+            ) : graduatedCoins && graduatedCoins.length > 0 ? (
+              graduatedCoins.map((item: any) => <CoinCard key={item.address || item.id} coin={mapToCoin(item)} />)
+            ) : (
+              <div className="text-center text-muted-foreground py-10">No graduated coins yet.</div>
+            )}
           </TabsContent>
         </ScrollArea>
       </Tabs>

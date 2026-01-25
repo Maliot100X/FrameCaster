@@ -1,0 +1,12 @@
+{
+  "name": "FrameCaster",
+  "iconUrl": "https://framecaster-jade.vercel.app/vercel.svg",
+  "startUrl": "https://framecaster-jade.vercel.app",
+  "frameUrl": "https://framecaster-jade.vercel.app",
+  "supports": ["fc:frame"],
+  "fc:frame:button:1": {
+    "action": "post",
+    "label": "Launch Coin",
+    "target": "/api/launch"
+  }
+}

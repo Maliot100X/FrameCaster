@@ -19,7 +19,7 @@ export const metadata: Metadata = {
           type: "launch_frame",
           name: "FrameCaster",
           url: process.env.NEXT_PUBLIC_APP_URL,
-          splashImageUrl: `${process.env.NEXT_PUBLIC_APP_URL}/splash.png`,
+          splashImageUrl: `${process.env.NEXT_PUBLIC_APP_URL}/vercel.svg`,
           splashBackgroundColor: "#000000",
         },
       },

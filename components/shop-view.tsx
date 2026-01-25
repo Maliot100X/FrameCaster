@@ -4,16 +4,37 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Zap, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useSendTransaction, useWaitForTransactionReceipt, useAccount } from "wagmi";
-import { parseEther } from "viem";
+import { useSendTransaction, useWaitForTransactionReceipt, useAccount, useWriteContract } from "wagmi";
+import { parseEther, parseUnits } from "viem";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 // @ts-ignore
 import { getCoinsCreated } from "@/lib/zora";
 
+const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7c32D4f71b54bda02913";
+const ERC20_ABI = [
+  {
+    name: "transfer",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" }
+    ],
+    outputs: [{ name: "", type: "bool" }]
+  }
+] as const;
+
 export function ShopView() {
-  const { sendTransaction, data: hash, isPending } = useSendTransaction();
+  const [currency, setCurrency] = useState<'ETH' | 'USDC'>('ETH');
+  
+  const { sendTransaction, data: ethHash, isPending: isEthPending } = useSendTransaction();
+  const { writeContract, data: usdcHash, isPending: isUsdcPending } = useWriteContract();
+  
+  const hash = currency === 'ETH' ? ethHash : usdcHash;
+  const isPending = isEthPending || isUsdcPending;
+
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   });
@@ -28,8 +49,8 @@ export function ShopView() {
     enabled: !!address,
     queryFn: async () => {
         // @ts-ignore
-        const res = await getCoinsCreated({ chainId: 8453, address }) as any;
-        return res?.coins || res || [];
+        const res = await getCreatedCoins(address!);
+        return res;
     }
   });
 
@@ -45,11 +66,33 @@ export function ShopView() {
     }
 
     setSelectedBoost({ hours, price });
-    sendTransaction({
-        to: platformWallet as `0x${string}`,
-        value: parseEther(price),
-    });
+    
+    if (currency === 'ETH') {
+        sendTransaction({
+            to: platformWallet as `0x${string}`,
+            value: parseEther(price),
+        });
+    } else {
+        writeContract({
+            address: USDC_ADDRESS,
+            abi: ERC20_ABI,
+            functionName: 'transfer',
+            args: [platformWallet as `0x${string}`, parseUnits(price, 6)]
+        });
+    }
   };
+
+  const prices = currency === 'ETH' 
+    ? [
+        { hours: 1, price: "0.005" },
+        { hours: 12, price: "0.02" },
+        { hours: 24, price: "0.05" }
+      ]
+    : [
+        { hours: 1, price: "15" },
+        { hours: 12, price: "60" },
+        { hours: 24, price: "150" }
+      ];
 
   useEffect(() => {
     if (isConfirmed && hash && selectedBoost && address && selectedCoinAddress) {
@@ -116,11 +159,27 @@ export function ShopView() {
                 )}
             </div>
 
-            {[
-                { hours: 1, price: "0.005" },
-                { hours: 12, price: "0.02" },
-                { hours: 24, price: "0.05" }
-            ].map((item) => (
+            {/* Currency Toggle */}
+            <div className="flex gap-2 p-1 bg-muted rounded-lg mb-4">
+                <Button 
+                    variant={currency === 'ETH' ? 'default' : 'ghost'} 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => setCurrency('ETH')}
+                >
+                    ETH
+                </Button>
+                <Button 
+                    variant={currency === 'USDC' ? 'default' : 'ghost'} 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => setCurrency('USDC')}
+                >
+                    USDC
+                </Button>
+            </div>
+
+            {prices.map((item) => (
                 <div key={item.hours} className={`flex items-center justify-between p-4 border rounded-xl bg-card transition-colors ${!selectedCoinAddress ? 'opacity-50' : 'hover:bg-accent/50'}`}>
                     <div className="flex items-center gap-3">
                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center font-bold text-black">
@@ -128,7 +187,7 @@ export function ShopView() {
                          </div>
                          <div>
                              <h3 className="font-bold">{item.hours} Hour Boost</h3>
-                             <p className="text-xs text-muted-foreground">~{item.price} ETH</p>
+                             <p className="text-xs text-muted-foreground">~{item.price} {currency}</p>
                          </div>
                     </div>
                     <Button 

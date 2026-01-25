@@ -10,9 +10,9 @@ import { getUserInfo } from "@/lib/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 // @ts-ignore
-import sdk from "@farcaster/frame-sdk";
+import sdk from "@farcaster/miniapp-sdk";
 import { useQuery } from "@tanstack/react-query";
-import { getCoinsOwned, getCoinsCreated } from "@/lib/zora";
+import { getOwnedCoins, getCreatedCoins } from "@/lib/zora";
 import { CoinCard, Coin } from "./coin-card";
 
 type FarcasterUser = {
@@ -35,6 +35,7 @@ export function ProfileView() {
   useEffect(() => {
     const loadContext = async () => {
       try {
+         // @ts-ignore
          const context = await sdk.context;
          if (context?.user?.fid) {
            setContextFid(context.user.fid);
@@ -80,9 +81,8 @@ export function ProfileView() {
     queryKey: ['coins', 'holdings', address],
     enabled: !!address,
     queryFn: async () => {
-        // @ts-ignore
-        const res = await getCoinsOwned({ chainId: 8453, address }) as any;
-        return res?.coins || res || [];
+        const res = await getOwnedCoins(address!);
+        return res;
     }
   });
 
@@ -90,9 +90,8 @@ export function ProfileView() {
     queryKey: ['coins', 'created', address],
     enabled: !!address,
     queryFn: async () => {
-        // @ts-ignore
-        const res = await getCoinsCreated({ chainId: 8453, address }) as any;
-        return res?.coins || res || [];
+        const res = await getCreatedCoins(address!);
+        return res;
     }
   });
 

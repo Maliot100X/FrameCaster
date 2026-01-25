@@ -5,16 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { ImagePlus, Rocket, Loader2 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { uploadFileToPinata, uploadJSONToPinata } from "@/lib/pinata";
 import { useWalletClient, useAccount } from "wagmi";
-import { base } from "viem/chains";
-// @ts-ignore
-import { createCoin } from "@/lib/zora"; 
+import { supabase } from "@/lib/supabase";
+import { publicClient, getCreatedCoins, createCoin } from "@/lib/zora";
+import sdk from "@farcaster/miniapp-sdk";
 
 export function LaunchView() {
   const { data: walletClient } = useWalletClient();
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   
   const [name, setName] = useState("");
   const [ticker, setTicker] = useState("");
@@ -22,8 +22,24 @@ export function LaunchView() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
+  const [fid, setFid] = useState<number>(0);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const loadContext = async () => {
+      try {
+        // @ts-ignore
+        const context = await sdk.context;
+        if (context?.user?.fid) {
+          setFid(context.user.fid);
+        }
+      } catch (err) {
+        console.error("Error loading context:", err);
+      }
+    };
+    loadContext();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -64,19 +80,73 @@ export function LaunchView() {
       const metadataURI = `ipfs://${metadataRes.ipfsHash}`;
 
       // 3. Call createCoin
-      const txHash = await createCoin({
+      // @ts-ignore
+      const result = await createCoin({
         call: {
+          creator: address as `0x${string}`,
           name,
           symbol: ticker,
-          imageURI: metadataURI,
-          chainId: base.id,
-          platformReferral: process.env.NEXT_PUBLIC_PLATFORM_WALLET,
-          // currency: "ETH" // might be inferred or named differently, checking if 'currency' is valid
+          metadata: { type: "RAW_URI", uri: metadataURI },
+          chainId: 8453,
+          payoutRecipientOverride: process.env.NEXT_PUBLIC_PLATFORM_WALLET as `0x${string}`,
+          currency: 'ZORA'
         },
-        walletClient
-      } as any);
+        walletClient, 
+        publicClient, 
+        options: { gasMultiplier: 120 }
+      });
       
-      console.log("Coin deployed:", txHash);
+      const txHash = result.hash;
+      console.log("Coin deployed, tx:", txHash);
+
+      // Wait for receipt to ensure it's on-chain
+      let receipt;
+      if (typeof txHash === 'string') {
+          receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as `0x${string}` });
+      }
+
+      // 4. Find the new coin address
+      // We'll query getCreatedCoins and look for one with matching name/symbol or just the latest
+      // A short delay might be needed for indexer to pick it up, but let's try immediately or fallback to just success message
+      
+      let coinAddress = "";
+      
+      // Try to find the coin address
+      if (address) {
+          // Wait a bit for Zora indexer? 
+          // Actually, let's just use a placeholder if we can't find it, or try to find it.
+          // Realistically, Zora SDK indexer takes a few seconds.
+          // We can insert into Supabase with "PENDING" or similar if address is unknown, but table expects string.
+          // Let's try to fetch.
+          try {
+             // small delay
+             await new Promise(r => setTimeout(r, 2000));
+             // @ts-ignore
+             const created = await getCreatedCoins(address);
+             // Find the coin we just created (matching name/symbol)
+             const found = created?.find((c: any) => c.name === name && c.symbol === ticker);
+             if (found) {
+                 coinAddress = found.address || found.id;
+             }
+          } catch (e) {
+              console.error("Error fetching created coin:", e);
+          }
+      }
+
+      // 5. Add to Supabase
+      const { error } = await supabase.from('graduated_coins').insert({
+          coin_address: coinAddress || "0x0000000000000000000000000000000000000000", // Placeholder if not found yet
+          name: name,
+          ticker: ticker,
+          image_uri: imageURI,
+          creator_fid: fid || 0,
+          created_at: new Date().toISOString()
+      });
+
+      if (error) {
+          console.error("Supabase error:", error);
+      }
+      
       alert("Coin deployed successfully!");
       
       // Reset form

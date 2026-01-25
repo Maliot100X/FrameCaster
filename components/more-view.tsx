@@ -1,16 +1,220 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, BookOpen, Bot, Zap } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ExternalLink, BookOpen, Bot, Zap, Crown, Check, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useAccount, useSendTransaction, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { parseEther, parseUnits } from "viem";
+import { supabase } from "@/lib/supabase";
+import sdk from "@farcaster/miniapp-sdk";
+
+const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7c32D4f71b54bda02913";
+const ERC20_ABI = [
+  {
+    name: "transfer",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" }
+    ],
+    outputs: [{ name: "", type: "bool" }]
+  }
+] as const;
 
 export function MoreView() {
+  const { address } = useAccount();
+  const [currency, setCurrency] = useState<'ETH' | 'USDC'>('ETH');
+  const [fid, setFid] = useState<number>(0);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<{trial: boolean, monthly: boolean, badge: string} | null>(null);
+
+  const { sendTransaction, data: ethHash, isPending: isEthPending } = useSendTransaction();
+  const { writeContract, data: usdcHash, isPending: isUsdcPending } = useWriteContract();
+  
+  const hash = currency === 'ETH' ? ethHash : usdcHash;
+  const isPending = isEthPending || isUsdcPending;
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  // Load Context & Subscription
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // @ts-ignore
+        const context = await sdk.context;
+        if (context?.user?.fid) {
+            setFid(context.user.fid);
+            
+            // Check subscription
+            const { data } = await supabase
+                .from('subscribers')
+                .select('*')
+                .eq('user_fid', context.user.fid)
+                .single();
+            
+            if (data) {
+                setSubscriptionStatus({
+                    trial: data.trial_paid,
+                    monthly: data.monthly_paid,
+                    badge: data.badge
+                });
+            }
+        }
+      } catch (e) {
+        console.error("Error loading context", e);
+      }
+    };
+    loadData();
+  }, []);
+
+  // Handle Payment Success
+  useEffect(() => {
+    if (isConfirmed && hash && fid) {
+        const updateSub = async () => {
+            const isTrial = selectedPlan === 'trial';
+            
+            // Upsert subscription
+            const { error } = await supabase.from('subscribers').upsert({
+                user_fid: fid,
+                trial_paid: isTrial ? true : (subscriptionStatus?.trial || false),
+                monthly_paid: !isTrial ? true : (subscriptionStatus?.monthly || false),
+                badge: "Premium",
+                start_date: new Date().toISOString()
+            }, { onConflict: 'user_fid' });
+
+            if (!error) {
+                alert("Subscription successful! Welcome to Premium.");
+                setSubscriptionStatus(prev => ({
+                    trial: isTrial ? true : (prev?.trial || false),
+                    monthly: !isTrial ? true : (prev?.monthly || false),
+                    badge: "Premium"
+                }));
+            } else {
+                console.error("Supabase error:", error);
+            }
+        };
+        updateSub();
+    }
+  }, [isConfirmed, hash, fid]);
+
+  const [selectedPlan, setSelectedPlan] = useState<'trial' | 'monthly'>('monthly');
+
+  const handleSubscribe = () => {
+      const platformWallet = process.env.NEXT_PUBLIC_PLATFORM_WALLET;
+      if (!platformWallet) return;
+
+      const price = selectedPlan === 'trial' ? '1' : '19'; // $1 or $19
+
+      if (currency === 'ETH') {
+          // Approximate ETH prices (hardcoded for simplicity as per requirements)
+          const ethPrice = selectedPlan === 'trial' ? '0.0004' : '0.008';
+          sendTransaction({
+              to: platformWallet as `0x${string}`,
+              value: parseEther(ethPrice)
+          });
+      } else {
+          writeContract({
+              address: USDC_ADDRESS,
+              abi: ERC20_ABI,
+              functionName: 'transfer',
+              args: [platformWallet as `0x${string}`, parseUnits(price, 6)]
+          });
+      }
+  };
+
   return (
-    <div className="flex flex-col h-full p-4 space-y-6">
+    <div className="flex flex-col h-full p-4 space-y-6 overflow-y-auto pb-24">
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">More</h2>
         <p className="text-sm text-muted-foreground">
           Additional tools and resources.
         </p>
       </div>
+
+      {/* Subscription Card */}
+      <Card className="border-purple-500/20 bg-gradient-to-br from-purple-900/10 to-blue-900/10 overflow-hidden relative">
+          {subscriptionStatus?.badge === "Premium" && (
+              <div className="absolute top-0 right-0 bg-yellow-400 text-black text-xs font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">
+                  <Crown className="h-3 w-3" /> PREMIUM
+              </div>
+          )}
+          <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-purple-500" />
+                  Premium Member
+              </CardTitle>
+              <CardDescription>
+                  Unlock exclusive features and powers.
+              </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+              <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500" /> Free Monthly Boosts
+                  </li>
+                  <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500" /> Priority Listing
+                  </li>
+                  <li className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500" /> Custom Themes
+                  </li>
+              </ul>
+
+              {!subscriptionStatus?.monthly && (
+                  <div className="bg-card/50 p-3 rounded-lg border space-y-3">
+                      <div className="flex gap-2">
+                          <Button 
+                              variant={selectedPlan === 'trial' ? 'default' : 'outline'} 
+                              size="sm" 
+                              className="flex-1"
+                              onClick={() => setSelectedPlan('trial')}
+                              disabled={subscriptionStatus?.trial}
+                          >
+                              Trial ($1)
+                          </Button>
+                          <Button 
+                              variant={selectedPlan === 'monthly' ? 'default' : 'outline'} 
+                              size="sm" 
+                              className="flex-1"
+                              onClick={() => setSelectedPlan('monthly')}
+                          >
+                              Monthly ($19)
+                          </Button>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                          <Button 
+                              variant={currency === 'ETH' ? 'secondary' : 'ghost'} 
+                              size="sm" 
+                              className="h-6 text-xs flex-1"
+                              onClick={() => setCurrency('ETH')}
+                          >
+                              ETH
+                          </Button>
+                          <Button 
+                              variant={currency === 'USDC' ? 'secondary' : 'ghost'} 
+                              size="sm" 
+                              className="h-6 text-xs flex-1"
+                              onClick={() => setCurrency('USDC')}
+                          >
+                              USDC
+                          </Button>
+                      </div>
+
+                      <Button 
+                        className="w-full bg-gradient-to-r from-purple-600 to-blue-600"
+                        onClick={handleSubscribe}
+                        disabled={isPending || isConfirming}
+                      >
+                          {isPending || isConfirming ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
+                          Subscribe with {currency}
+                      </Button>
+                  </div>
+              )}
+          </CardContent>
+      </Card>
 
       <div className="grid gap-4">
         <Card className="bg-blue-500/5 border-blue-500/20">
