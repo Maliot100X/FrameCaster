@@ -9,6 +9,7 @@ import { useEffect, useState, useCallback } from "react";
 import { getUserInfo } from "@/lib/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+// @ts-ignore
 import sdk from "@farcaster/frame-sdk";
 import { useQuery } from "@tanstack/react-query";
 import { getCoinsOwned, getCoinsCreated } from "@/lib/zora";

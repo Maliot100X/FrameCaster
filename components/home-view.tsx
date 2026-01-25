@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { getCoinsNew, getCoinsTrending } from "@/lib/zora";
 import { CoinCard, Coin } from "./coin-card";
+import { supabase } from "@/lib/supabase";
 
 function CoinCardSkeleton() {
   return (
@@ -42,6 +43,33 @@ export function HomeView() {
        // @ts-ignore
       const res = await getCoinsTrending({ chainId: 8453, limit: 10 }) as any;
       return res?.coins || res || [];
+    }
+  });
+
+  const { data: boostedCoins, isLoading: isLoadingBoosted } = useQuery({
+    queryKey: ['coins', 'boosted'],
+    queryFn: async () => {
+        const { data } = await supabase
+            .from('boosts')
+            .select('*')
+            .gt('expires_at', new Date().toISOString())
+            .order('amount_paid', { ascending: false }); // Sort by payment amount (king of hill)
+        
+        // In a real app, we would fetch the coin metadata for each boosted coin
+        // For now, we'll map what we have or return placeholders if metadata missing
+        // This is a simplified implementation
+        return data || [];
+    }
+  });
+
+  const { data: graduatedCoins, isLoading: isLoadingGrad } = useQuery({
+    queryKey: ['coins', 'graduated'],
+    queryFn: async () => {
+        const { data } = await supabase
+            .from('graduated_coins')
+            .select('*')
+            .order('created_at', { ascending: false });
+        return data || [];
     }
   });
 
@@ -103,15 +131,55 @@ export function HomeView() {
 
           <TabsContent value="boosted" className="space-y-3 pb-20 mt-0">
             <p className="text-xs text-muted-foreground py-2 font-medium">Featured community coins</p>
-             <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                <p>No boosted coins yet.</p>
-             </div>
+             {isLoadingBoosted ? (
+                <>
+                    <CoinCardSkeleton />
+                    <CoinCardSkeleton />
+                </>
+             ) : boostedCoins && boostedCoins.length > 0 ? (
+                boostedCoins.map((boost: any) => (
+                    // We need to fetch coin details for the boost. 
+                    // This is a placeholder since we don't have the full coin object stored in boosts table usually
+                    // Ideally we join tables. For now assuming we have some metadata or fetching it.
+                    <div key={boost.id} className="p-4 border rounded-xl text-center text-sm">
+                        Coin: {boost.coin_address} (Boosted)
+                    </div>
+                ))
+             ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                   <p>No boosted coins yet.</p>
+                </div>
+             )}
           </TabsContent>
 
           <TabsContent value="grad" className="space-y-3 pb-20 mt-0">
-             <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                <p>No graduated coins yet.</p>
-             </div>
+             {isLoadingGrad ? (
+                <>
+                    <CoinCardSkeleton />
+                    <CoinCardSkeleton />
+                </>
+             ) : graduatedCoins && graduatedCoins.length > 0 ? (
+                graduatedCoins.map((coin: any) => (
+                    <CoinCard key={coin.id} coin={{
+                        id: coin.coin_address,
+                        name: coin.name,
+                        ticker: coin.ticker,
+                        image: coin.image_uri,
+                        marketCap: "Graduated",
+                        holders: 0,
+                        creator: {
+                            fid: coin.creator_fid,
+                            avatar: "",
+                            username: "Creator"
+                        },
+                        isBoosted: true
+                    }} />
+                ))
+             ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                    <p>No graduated coins yet.</p>
+                </div>
+             )}
           </TabsContent>
 
           <TabsContent value="trend" className="space-y-3 pb-20 mt-0">
