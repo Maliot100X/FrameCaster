@@ -29,14 +29,14 @@ export const getNewCoins = async () => {
   return (res as any)?.coins || res || [];
 };
 
-export const getOwnedCoins = async (address: string) => {
+export const getCoinsOwned = async (address: string) => {
   if (!address) return [];
   // @ts-ignore
   const res = await getProfileBalances({ chainId: 8453, address });
   return (res as any)?.coins || res || [];
 };
 
-export const getCreatedCoins = async (address: string) => {
+export const getCoinsCreated = async (address: string) => {
   if (!address) return [];
   // @ts-ignore
   const res = await getProfileCoins({ chainId: 8453, address });

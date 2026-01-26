@@ -53,9 +53,6 @@ export function HomeView() {
             .gt('expires_at', new Date().toISOString())
             .order('amount_paid', { ascending: false }); // Sort by payment amount (king of hill)
         
-        // In a real app, we would fetch the coin metadata for each boosted coin
-        // For now, we'll map what we have or return placeholders if metadata missing
-        // This is a simplified implementation
         return data || [];
     }
   });

@@ -81,22 +81,26 @@ export function LaunchView() {
 
       // 3. Call createCoin
       // @ts-ignore
-      const result = await createCoin({
-        call: {
-          creator: address as `0x${string}`,
-          name,
-          symbol: ticker,
-          metadata: { type: "RAW_URI", uri: metadataURI },
-          chainId: 8453,
-          payoutRecipientOverride: process.env.NEXT_PUBLIC_PLATFORM_WALLET as `0x${string}`,
-          currency: 'ZORA'
-        },
-        walletClient, 
-        publicClient, 
-        options: { gasMultiplier: 120 }
+      const args = {
+        creator: address as Address,
+        name: name,
+        symbol: ticker,
+        metadata: { type: "RAW_URI" as const, uri: metadataURI },
+        currency: CreateConstants.ContentCoinCurrencies.ETH,
+        chainId: base.id,
+        startingMarketCap: CreateConstants.StartingMarketCaps.LOW,
+        platformReferrerAddress: process.env.NEXT_PUBLIC_PLATFORM_WALLET as Address,
+      };
+
+      // @ts-ignore
+      const result = await createCoin({ 
+        call: args, 
+        walletClient: walletClient, 
+        publicClient 
       });
       
       const txHash = result.hash;
+      const coinAddress = result.address || ("0x" + txHash.slice(2, 42)); // Fallback if needed
       console.log("Coin deployed, tx:", txHash);
 
       // Wait for receipt to ensure it's on-chain

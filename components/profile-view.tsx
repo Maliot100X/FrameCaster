@@ -81,7 +81,7 @@ export function ProfileView() {
     queryKey: ['coins', 'holdings', address],
     enabled: !!address,
     queryFn: async () => {
-        const res = await getOwnedCoins(address!);
+        const res = await getCoinsOwned(address!);
         return res;
     }
   });
