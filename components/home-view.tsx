@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { getNewCoins, getTrendingCoins } from "@/lib/zora";
+import { fetchLatestCoins, type ZoraCoin } from "@/lib/zoraIndexer";
 import { CoinCard, Coin } from "./coin-card";
 import { supabase } from "@/lib/supabase";
 
@@ -31,18 +31,17 @@ export function HomeView() {
   const { data: newCoins, isLoading: isLoadingNew } = useQuery({
     queryKey: ['coins', 'new'],
     queryFn: async () => {
-      // @ts-ignore
-      const res = await getNewCoins({ count: 20 });
-      return (res as any)?.coins || res || [];
+      const res = await fetchLatestCoins(20);
+      return res || [];
     }
   });
 
   const { data: trendingCoins, isLoading: isLoadingTrending } = useQuery({
     queryKey: ['coins', 'trending'],
     queryFn: async () => {
-      // @ts-ignore
-      const res = await getTrendingCoins({ count: 20 });
-      return (res as any)?.coins || res || [];
+      // Indexer trending not yet implemented, falling back to latest
+      const res = await fetchLatestCoins(20);
+      return res || [];
     }
   });
 
@@ -71,23 +70,19 @@ export function HomeView() {
   });
 
   const mapToCoin = (item: any, isBoosted = false): Coin => {
-    // Handle various Zora SDK response formats
-    const metadata = item.metadata || {};
-    const image = item.imageURI || item.image || item.tokenURI || metadata.image || metadata.imageURI || "https://framecaster-jade.vercel.app/vercel.svg";
-    
     return {
-      id: item.address || item.id,
+      id: item.address,
       name: item.name || "Unknown",
       ticker: item.symbol || "UNK",
-      image: image,
-      marketCap: item.marketCap ? `$${Number(item.marketCap).toLocaleString()}` : 'N/A',
+      image: item.imageUrl || item.uri?.replace('ipfs://', 'https://ipfs.io/ipfs/') || "https://framecaster-jade.vercel.app/vercel.svg",
+      marketCap: item.marketCap || 'N/A',
       holders: item.holderCount || 0,
       creator: {
-        fid: item.creator?.fid || 0,
-        avatar: item.creator?.pfp || "",
-        username: item.creator?.username || item.creator?.address?.slice(0, 6) || "Unknown"
+        fid: 0, // Indexer doesn't give FID
+        avatar: "",
+        username: item.creatorAddress?.slice(0, 6) || "Unknown"
       },
-      change24h: item.change24h || 0,
+      change24h: 0,
       isBoosted: isBoosted
     };
   };

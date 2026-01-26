@@ -2,11 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createWalletClient, createPublicClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
-// @ts-ignore
-import { createCoin, CreateConstants } from '@zoralabs/coins-sdk';
 import { supabase } from '@/lib/supabase';
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://framecaster-jade.vercel.app';
+
+const ZORA_FACTORY_ADDRESS = "0x777777751622c0d3258f214F9DF38E35BF45baF3";
+const ZORA_FACTORY_ABI = [
+  {
+    "inputs": [
+      { "name": "payoutRecipient", "type": "address" },
+      { "name": "owners", "type": "address[]" },
+      { "name": "uri", "type": "string" },
+      { "name": "name", "type": "string" },
+      { "name": "symbol", "type": "string" },
+      { "name": "platformReferrer", "type": "address" },
+      { "name": "currency", "type": "address" },
+      { "name": "tickLower", "type": "int24" },
+      { "name": "orderSize", "type": "uint256" }
+    ],
+    "name": "deploy",
+    "outputs": [
+      { "name": "", "type": "address" },
+      { "name": "", "type": "uint256" }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+] as const;
 
 export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
@@ -66,20 +88,37 @@ export async function POST(req: NextRequest) {
                 transport: http(process.env.BASE_RPC_URL) 
             });
 
-            const args = {
-                creator: creator || account.address, 
-                name,
-                symbol: ticker,
-                metadata: { type: "RAW_URI" as const, uri: image || "" },
-                currency: CreateConstants.ContentCoinCurrencies.ETH,
-                chainId: base.id,
-                startingMarketCap: CreateConstants.StartingMarketCaps.LOW,
-                platformReferrerAddress: process.env.NEXT_PUBLIC_PLATFORM_WALLET as `0x${string}`,
-            };
+            const payoutRecipient = creator as `0x${string}` || account.address;
+            
+            // Simulate first to get the address
+            const { request, result } = await publicClient.simulateContract({
+                address: ZORA_FACTORY_ADDRESS,
+                abi: ZORA_FACTORY_ABI,
+                functionName: 'deploy',
+                account,
+                args: [
+                    payoutRecipient, // payoutRecipient
+                    [payoutRecipient], // owners
+                    image || "", // uri - using image URL as metadata URI for quick launch
+                    name,
+                    ticker,
+                    process.env.NEXT_PUBLIC_PLATFORM_WALLET as `0x${string}` || account.address, // platformReferrer
+                    "0x0000000000000000000000000000000000000000", // currency (ETH)
+                    -199200, // tickLower
+                    0n // orderSize
+                ],
+                value: 0n
+            });
 
-            // @ts-ignore
-            const result = await createCoin({ call: args, walletClient, publicClient });
-            const coinAddress = result.address || ("0x" + result.hash.slice(2, 42)); // Approximate if needed
+            const coinAddress = result[0];
+            
+            // Deploy directly via contract using the simulated request
+            const hash = await walletClient.writeContract(request);
+
+            // Wait for receipt to confirm
+            // For frames, we want to return quickly, but we also want to verify.
+            // Since we need to return the next frame, we can just return success and let the indexer pick it up.
+            // But we should store the hash.
 
              // Add to Supabase
              await supabase.from('graduated_coins').insert({

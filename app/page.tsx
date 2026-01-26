@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Home, Rocket, ShoppingBag, User, MoreHorizontal } from "lucide-react";
+import { Home, Rocket, ShoppingBag, User, MoreHorizontal, Sparkles } from "lucide-react";
 import { HomeView } from "@/components/home-view";
 import { LaunchView } from "@/components/launch-view";
 import { ShopView } from "@/components/shop-view";
 import { ProfileView } from "@/components/profile-view";
-import { MoreView } from "@/components/more-view";
+import { AIChatView } from "@/components/ai-chat";
 import { cn } from "@/lib/utils";
 
 export default function Page() {
-  const [activeTab, setActiveTab] = useState<"home" | "launch" | "shop" | "profile" | "more">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "launch" | "shop" | "profile" | "chat">("home");
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
@@ -21,7 +21,7 @@ export default function Page() {
         {activeTab === "launch" && <LaunchView />}
         {activeTab === "shop" && <ShopView />}
         {activeTab === "profile" && <ProfileView />}
-        {activeTab === "more" && <MoreView />}
+        {activeTab === "chat" && <AIChatView />}
       </main>
 
       {/* Bottom Navigation Bar */}
@@ -71,14 +71,14 @@ export default function Page() {
         </button>
 
         <button
-          onClick={() => setActiveTab("more")}
+          onClick={() => setActiveTab("chat")}
           className={cn(
             "flex flex-col items-center justify-center gap-1 h-full transition-colors",
-            activeTab === "more" ? "text-primary" : "text-muted-foreground hover:text-primary/70"
+            activeTab === "chat" ? "text-primary" : "text-muted-foreground hover:text-primary/70"
           )}
         >
-          <MoreHorizontal className={cn("h-6 w-6", activeTab === "more" && "fill-current")} />
-          <span className="text-[10px] font-medium">More</span>
+          <Sparkles className={cn("h-6 w-6", activeTab === "chat" && "fill-current")} />
+          <span className="text-[10px] font-medium">AI Chat</span>
         </button>
       </nav>
     </div>

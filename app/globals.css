@@ -120,13 +120,3 @@
   --chart-5: 340 75% 55%;
 }
 
-@layer base {
-  html, body {
-    background-color: #000;
-    color: #fff;
-  }
-  .card {
-    background-color: #111;
-    border: 1px solid #333;
-  }
-}

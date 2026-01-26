@@ -9,7 +9,7 @@ import { parseEther, parseUnits } from "viem";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
-import { getCoinsCreated } from "@/lib/zora";
+import { fetchUserCoins } from "@/lib/zoraIndexer";
 import sdk from "@farcaster/miniapp-sdk";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -66,9 +66,9 @@ export function ShopView() {
     queryKey: ['coins', 'created', address],
     enabled: !!address,
     queryFn: async () => {
-        // @ts-ignore
-        const res = await getCoinsCreated(address!);
-        return (res as any)?.coins || res || [];
+        if (!address) return [];
+        const res = await fetchUserCoins(address);
+        return res;
     }
   });
 

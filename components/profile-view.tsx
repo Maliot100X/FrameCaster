@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 // @ts-ignore
 import sdk from "@farcaster/miniapp-sdk";
 import { useQuery } from "@tanstack/react-query";
-import { getCoinsOwned, getCoinsCreated } from "@/lib/zora";
+import { fetchUserCoins, fetchUserHoldings, type ZoraCoin } from "@/lib/zoraIndexer";
 import { CoinCard, Coin } from "./coin-card";
 import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
@@ -98,8 +98,8 @@ export function ProfileView() {
     queryKey: ['coins', 'holdings', address],
     enabled: !!address,
     queryFn: async () => {
-        const res = await getCoinsOwned(address!);
-        return res;
+        if (!address) return [];
+        return await fetchUserHoldings(address);
     }
   });
 
@@ -107,29 +107,26 @@ export function ProfileView() {
     queryKey: ['coins', 'created', address],
     enabled: !!address,
     queryFn: async () => {
-        const res = await getCoinsCreated(address!);
+        if (!address) return [];
+        const res = await fetchUserCoins(address);
         return res;
     }
   });
 
-  const mapToCoin = (item: any): Coin => {
-    // Handle various Zora SDK response formats
-    const metadata = item.metadata || {};
-    const image = item.imageURI || item.image || item.tokenURI || metadata.image || metadata.imageURI || "";
-
+  const mapToCoin = (item: ZoraCoin): Coin => {
     return {
-      id: item.address || item.id,
+      id: item.address,
       name: item.name || "Unknown",
       ticker: item.symbol || "UNK",
-      image: image,
-      marketCap: item.marketCap ? `$${Number(item.marketCap).toLocaleString()}` : 'N/A',
+      image: item.imageUrl || item.uri?.replace('ipfs://', 'https://ipfs.io/ipfs/') || "",
+      marketCap: item.marketCap || 'N/A',
       holders: item.holderCount || 0,
       creator: {
-        fid: item.creator?.fid || 0,
-        avatar: item.creator?.pfp || "",
-        username: item.creator?.username || item.creator?.address?.slice(0, 6) || "Unknown"
+        fid: 0,
+        avatar: "",
+        username: item.creatorAddress?.slice(0, 6) || "Unknown"
       },
-      change24h: item.change24h || 0,
+      change24h: 0,
       isBoosted: false
     };
   };
@@ -229,21 +226,15 @@ export function ProfileView() {
           </TabsList>
           <ScrollArea className="h-[200px] mt-2 rounded-md border p-4">
               <TabsContent value="holdings" className="mt-0 space-y-2">
-                  {isConnected ? (
-                       isLoadingHoldings ? (
-                           <div className="text-center py-8 text-muted-foreground text-sm">Loading holdings...</div>
-                       ) : holdings && holdings.length > 0 ? (
-                           holdings.map((coin: any) => (
-                               <CoinCard key={coin.address || coin.id} coin={mapToCoin(coin)} />
-                           ))
-                       ) : (
-                           <div className="text-center py-8 text-muted-foreground text-sm">
-                              No coins held yet.
-                           </div>
-                       )
+                  {isLoadingHoldings ? (
+                      <div className="flex justify-center p-4"><Loader2 className="animate-spin" /></div>
+                  ) : holdings && holdings.length > 0 ? (
+                       holdings.map((coin: ZoraCoin) => (
+                           <CoinCard key={coin.address} coin={mapToCoin(coin)} />
+                       ))
                   ) : (
                       <div className="text-center py-8 text-muted-foreground text-sm">
-                          Connect wallet to see holdings.
+                          Indexer syncing – check back soon.
                       </div>
                   )}
               </TabsContent>
