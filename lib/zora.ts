@@ -54,4 +54,4 @@ export const getCoinsCreated = async (address: string) => {
   return (res as any)?.coins || res || [];
 };
 
-export { createCoin };
+export { createCoin, getCoinsNew, getCoinsTopVolume24h, setApiKey };

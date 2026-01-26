@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Wallet, LogOut, User, RefreshCw, Loader2 } from "lucide-react";
+import { Wallet, LogOut, User, RefreshCw, Loader2, Crown } from "lucide-react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { useEffect, useState, useCallback } from "react";
 import { getUserInfo } from "@/lib/actions";
@@ -14,6 +14,8 @@ import sdk from "@farcaster/miniapp-sdk";
 import { useQuery } from "@tanstack/react-query";
 import { getCoinsOwned, getCoinsCreated } from "@/lib/zora";
 import { CoinCard, Coin } from "./coin-card";
+import { supabase } from "@/lib/supabase";
+import { Badge } from "@/components/ui/badge";
 
 type FarcasterUser = {
   fid: number;
@@ -31,6 +33,7 @@ export function ProfileView() {
   const [farcasterUser, setFarcasterUser] = useState<FarcasterUser | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [contextFid, setContextFid] = useState<number | null>(null);
+  const [subscription, setSubscription] = useState<{badge: string, monthly: boolean} | null>(null);
 
   useEffect(() => {
     const loadContext = async () => {
@@ -40,6 +43,20 @@ export function ProfileView() {
          if (context?.user?.fid) {
            setContextFid(context.user.fid);
            handleSync(context.user.fid);
+           
+           // Check subscription
+           const { data } = await supabase
+               .from('subscribers')
+               .select('*')
+               .eq('user_fid', context.user.fid)
+               .single();
+           
+           if (data) {
+               setSubscription({
+                   badge: data.badge,
+                   monthly: data.monthly_paid
+               });
+           }
          }
       } catch (err) {
         console.error("Error loading frame context:", err);
@@ -123,38 +140,27 @@ export function ProfileView() {
       </div>
 
       {/* Farcaster Profile Card */}
-      <Card className="border-purple-500/20 bg-purple-500/5">
-          <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-purple-400 flex justify-between items-center">
-                <span>Farcaster Connected</span>
-                <Button variant="ghost" size="sm" onClick={() => handleSync(contextFid || undefined)} disabled={isSyncing} className="h-6 w-6 p-0">
-                    <RefreshCw className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} />
-                </Button>
-              </CardTitle>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between">
-              {farcasterUser ? (
-                  <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 border-2 border-background">
-                          <AvatarImage src={farcasterUser.pfp_url} />
-                          <AvatarFallback>{farcasterUser.username[0].toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                          <p className="font-bold">{farcasterUser.display_name}</p>
-                          <p className="text-xs text-muted-foreground">@{farcasterUser.username} (FID: {farcasterUser.fid})</p>
-                      </div>
-                  </div>
-              ) : (
-                  <div className="flex flex-col gap-2 w-full">
-                      <p className="text-sm text-muted-foreground">Not synced with Farcaster</p>
-                      <Button size="sm" variant="outline" onClick={() => handleSync()} disabled={isSyncing}>
-                          {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <User className="mr-2 h-4 w-4" />}
-                          Sync Farcaster
-                      </Button>
-                  </div>
-              )}
-          </CardContent>
-      </Card>
+      <div className="flex flex-col items-center space-y-4 p-6 bg-card rounded-xl border border-border">
+        <div className="relative">
+            <Avatar className="h-24 w-24 border-2 border-primary">
+              <AvatarImage src={farcasterUser?.pfp_url} />
+              <AvatarFallback>{farcasterUser?.username?.slice(0, 2).toUpperCase() || "??"}</AvatarFallback>
+            </Avatar>
+            {subscription && (
+                <div className="absolute -top-2 -right-2 bg-yellow-500 rounded-full p-1.5 border-2 border-background" title="Premium Member">
+                    <Crown className="w-4 h-4 text-white fill-white" />
+                </div>
+            )}
+        </div>
+        
+        <div className="text-center space-y-1">
+          <h2 className="text-xl font-bold flex items-center justify-center gap-2">
+            {farcasterUser?.display_name || "Guest"}
+            {subscription && <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-500 border-yellow-500/30">PRO</Badge>}
+          </h2>
+          <p className="text-sm text-muted-foreground">@{farcasterUser?.username || "guest"}</p>
+        </div>
+      </div>
 
       {/* Wallet Connection */}
       <div className="space-y-4">

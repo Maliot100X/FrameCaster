@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client
 // Use fallback to prevent crash on client-side if env vars are missing
-const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://plkhqvhqbnmtovjvwgfj.supabase.co';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'placeholder';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

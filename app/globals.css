@@ -46,27 +46,22 @@
   --color-chart-5: var(--chart-5);
 }
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-*/
 @layer base {
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
+    border-color: var(--color-gray-800, currentColor);
   }
 }
 
 :root {
-  --background: 240 10% 3.9%;
+  --background: 0 0% 0%; /* Black */
   --foreground: 0 0% 98%;
-  --card: 240 10% 3.9%;
+  --card: 0 0% 7%; /* Dark Gray */
   --card-foreground: 0 0% 98%;
-  --popover: 240 10% 3.9%;
+  --popover: 0 0% 7%;
   --popover-foreground: 0 0% 98%;
   --primary: 263 70% 50%; /* Neon Purple */
   --primary-foreground: 210 40% 98%;
@@ -92,9 +87,9 @@
 .dark {
   --background: 0 0% 0%; /* Pure Black */
   --foreground: 0 0% 98%;
-  --card: 240 10% 3.9%;
+  --card: 0 0% 7%; /* Dark Gray #111 */
   --card-foreground: 0 0% 98%;
-  --popover: 240 10% 3.9%;
+  --popover: 0 0% 7%;
   --popover-foreground: 0 0% 98%;
   --primary: 263 70% 50%; /* Neon Purple */
   --primary-foreground: 210 40% 98%;
@@ -109,9 +104,15 @@
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
   --ring: 240 4.9% 83.9%;
-  --chart-1: 220 70% 50%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 340 75% 55%;
+}
+
+@layer base {
+  html, body {
+    background-color: #000;
+    color: #fff;
+  }
+  .card {
+    background-color: #111;
+    border: 1px solid #333;
+  }
 }

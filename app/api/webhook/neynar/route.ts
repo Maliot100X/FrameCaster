@@ -97,42 +97,25 @@ export async function POST(req: NextRequest) {
             const ticker = parts[2].toUpperCase();
             const image = cast.embeds?.[0]?.url || author.pfp_url || "https://placehold.co/400";
             
-            const result = await deployCoin(name, ticker, image, author.verifications?.[0] || author.custody_address); // Use bot wallet but track user
+            // Construct Frame URL
+            const frameUrl = `${appUrl}/api/frame/launch?name=${encodeURIComponent(name)}&ticker=${encodeURIComponent(ticker)}&image=${encodeURIComponent(image)}&creator=${author.custody_address}`;
             
-            if (result) {
-                const coinAddr = result.coinAddress || ("0x" + result.txHash.slice(2, 42)); // Fallback if address not returned immediately
-                
-                // Add to Supabase
-                await supabase.from('graduated_coins').insert({
-                    coin_address: coinAddr,
-                    name: name,
-                    ticker: ticker,
-                    image_uri: image,
-                    creator_fid: author.fid,
-                    created_at: new Date().toISOString()
-                });
-
-                await reply(`Launched ${name} ($${ticker})! View at ${appUrl}/coin/${coinAddr}. Commands: /launch name ticker (image) - deploy; /coin profile - create from profile.`);
-            }
+            await reply(`🚀 Ready to launch ${name} ($${ticker})! Pay 0.0004 ETH (~$1) to deploy.\n\n${frameUrl}`);
         }
-    } else if (castText.startsWith('/coin profile')) {
-        const name = author.display_name || author.username;
-        const ticker = author.username.slice(0, 4).toUpperCase();
-        const image = author.pfp_url || "https://placehold.co/400";
+    } else if (castText.includes('/coin profile') || castText.includes('/profile coin')) {
+        // Fetch user profile coin
+        const targetFid = cast.parent_author?.fid || author.fid; // Use parent author if reply, else self
+        const { users } = await neynarClient.fetchBulkUsers({ fids: [targetFid] });
+        const user = users[0];
         
-        const result = await deployCoin(name, ticker, image, author.verifications?.[0] || author.custody_address);
-        
-        if (result) {
-            const coinAddr = result.coinAddress || ("0x" + result.txHash.slice(2, 42));
-             await supabase.from('graduated_coins').insert({
-                coin_address: coinAddr,
-                name,
-                ticker,
-                image_uri: image,
-                creator_fid: author.fid,
-                created_at: new Date().toISOString()
-            });
-            await reply(`Launched from profile! View: ${appUrl}/coin/${coinAddr}`);
+        if (user) {
+            const name = `${user.display_name} Coin`;
+            const ticker = `$${user.username.toUpperCase()}`;
+            const image = user.pfp_url || "https://placehold.co/400";
+            
+            const frameUrl = `${appUrl}/api/frame/launch?name=${encodeURIComponent(name)}&ticker=${encodeURIComponent(ticker)}&image=${encodeURIComponent(image)}&creator=${user.custody_address}`;
+            
+            await reply(`👤 Launching profile coin for @${user.username}!\n\n${frameUrl}`);
         }
     }
 
