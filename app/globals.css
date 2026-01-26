@@ -47,6 +47,15 @@
 }
 
 @layer base {
+  html, body {
+    background-color: #000 !important;
+    color: #fff !important;
+  }
+  .card {
+    background-color: #111;
+    border: 1px solid #333;
+    border-radius: 0.5rem;
+  }
   *,
   ::after,
   ::before,
@@ -59,7 +68,7 @@
 :root {
   --background: 0 0% 0%; /* Black */
   --foreground: 0 0% 98%;
-  --card: 0 0% 7%; /* Dark Gray */
+  --card: 0 0% 7%; /* #111 */
   --card-foreground: 0 0% 98%;
   --popover: 0 0% 7%;
   --popover-foreground: 0 0% 98%;
@@ -85,13 +94,13 @@
 }
 
 .dark {
-  --background: 0 0% 0%; /* Pure Black */
+  --background: 0 0% 0%;
   --foreground: 0 0% 98%;
-  --card: 0 0% 7%; /* Dark Gray #111 */
+  --card: 0 0% 7%;
   --card-foreground: 0 0% 98%;
   --popover: 0 0% 7%;
   --popover-foreground: 0 0% 98%;
-  --primary: 263 70% 50%; /* Neon Purple */
+  --primary: 263 70% 50%;
   --primary-foreground: 210 40% 98%;
   --secondary: 240 3.7% 15.9%;
   --secondary-foreground: 0 0% 98%;
@@ -104,6 +113,11 @@
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
   --ring: 240 4.9% 83.9%;
+  --chart-1: 220 70% 50%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
 }
 
 @layer base {

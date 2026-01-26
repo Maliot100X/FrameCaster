@@ -11,7 +11,7 @@ import {
 } from '@zoralabs/coins-sdk';
 
 // @ts-ignore
-if (typeof window === 'undefined' && process.env.NEXT_PUBLIC_ZORA_API_KEY) {
+if (process.env.NEXT_PUBLIC_ZORA_API_KEY) {
     try {
         // @ts-ignore
         setApiKey(process.env.NEXT_PUBLIC_ZORA_API_KEY);
@@ -28,15 +28,15 @@ export const publicClient = createPublicClient({
 // Wrapper functions to ensure correct params as per user request
 // No API calls, pure SDK usage
 
-export const getTrendingCoins = async () => {
+export const getTrendingCoins = async (options: any = {}) => {
   // @ts-ignore
-  const res = await getCoinsTopVolume24h({ count: 10 });
+  const res = await getCoinsTopVolume24h({ count: 20, ...options });
   return (res as any)?.coins || res || [];
 };
 
-export const getNewCoins = async () => {
+export const getNewCoins = async (options: any = {}) => {
   // @ts-ignore
-  const res = await getCoinsNew({ count: 10 });
+  const res = await getCoinsNew({ count: 20, ...options });
   return (res as any)?.coins || res || [];
 };
 

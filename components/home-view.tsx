@@ -31,16 +31,18 @@ export function HomeView() {
   const { data: newCoins, isLoading: isLoadingNew } = useQuery({
     queryKey: ['coins', 'new'],
     queryFn: async () => {
-      const res = await getNewCoins();
-      return res;
+      // @ts-ignore
+      const res = await getNewCoins({ count: 20 });
+      return (res as any)?.coins || res || [];
     }
   });
 
   const { data: trendingCoins, isLoading: isLoadingTrending } = useQuery({
     queryKey: ['coins', 'trending'],
     queryFn: async () => {
-      const res = await getTrendingCoins();
-      return res;
+      // @ts-ignore
+      const res = await getTrendingCoins({ count: 20 });
+      return (res as any)?.coins || res || [];
     }
   });
 
@@ -113,7 +115,7 @@ export function HomeView() {
             ) : newCoins && newCoins.length > 0 ? (
               newCoins.map((item: any) => <CoinCard key={item.address || item.id} coin={mapToCoin(item)} />)
             ) : (
-              <div className="text-center text-muted-foreground py-10">No new coins found.</div>
+              <div className="text-center text-muted-foreground py-10">No coins yet.</div>
             )}
           </TabsContent>
 
@@ -123,7 +125,7 @@ export function HomeView() {
             ) : trendingCoins && trendingCoins.length > 0 ? (
               trendingCoins.map((item: any) => <CoinCard key={item.address || item.id} coin={mapToCoin(item)} />)
             ) : (
-              <div className="text-center text-muted-foreground py-10">No trending coins found.</div>
+              <div className="text-center text-muted-foreground py-10">No coins yet.</div>
             )}
           </TabsContent>
 
