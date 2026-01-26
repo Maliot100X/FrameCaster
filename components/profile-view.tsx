@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 // @ts-ignore
 import sdk from "@farcaster/miniapp-sdk";
 import { useQuery } from "@tanstack/react-query";
-import { getOwnedCoins, getCreatedCoins } from "@/lib/zora";
+import { getCoinsOwned, getCoinsCreated } from "@/lib/zora";
 import { CoinCard, Coin } from "./coin-card";
 
 type FarcasterUser = {

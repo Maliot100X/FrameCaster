@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { NeynarAPIClient } from "@neynar/nodejs-sdk";
+import { NeynarAPIClient, Configuration } from "@neynar/nodejs-sdk";
 import { createWalletClient, createPublicClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
 // @ts-ignore
 import { createCoin, CreateConstants } from '@zoralabs/coins-sdk';
 
-const neynarClient = new NeynarAPIClient(process.env.NEYNAR_API_KEY!);
+const config = new Configuration({
+  apiKey: process.env.NEYNAR_API_KEY!,
+});
+
+const neynarClient = new NeynarAPIClient(config);
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,7 +33,7 @@ export async function POST(req: NextRequest) {
             await neynarClient.publishCast({
                 signerUuid: 'fc1eb588-56af-472b-a6d2-78acb1f682d4',
                 text: message,
-                replyTo: cast.hash
+                parent: cast.hash
             });
         } catch (e) {
             console.error("Reply error:", e);

@@ -6,8 +6,19 @@ import {
   getCoinsTopVolume24h, 
   getProfileBalances, 
   getProfileCoins, 
-  createCoin 
+  createCoin,
+  setApiKey
 } from '@zoralabs/coins-sdk';
+
+// @ts-ignore
+if (typeof window === 'undefined' && process.env.NEXT_PUBLIC_ZORA_API_KEY) {
+    try {
+        // @ts-ignore
+        setApiKey(process.env.NEXT_PUBLIC_ZORA_API_KEY);
+    } catch (e) {
+        console.log("Failed to set Zora API key", e);
+    }
+}
 
 export const publicClient = createPublicClient({
   chain: base,

@@ -9,8 +9,11 @@ import { useState, useRef, useEffect } from "react";
 import { uploadFileToPinata, uploadJSONToPinata } from "@/lib/pinata";
 import { useWalletClient, useAccount } from "wagmi";
 import { supabase } from "@/lib/supabase";
-import { publicClient, getCreatedCoins, createCoin } from "@/lib/zora";
+import { publicClient, createCoin } from "@/lib/zora";
 import sdk from "@farcaster/miniapp-sdk";
+import { type Address } from "viem";
+import { CreateConstants } from "@zoralabs/coins-sdk";
+import { base } from "viem/chains";
 
 export function LaunchView() {
   const { data: walletClient } = useWalletClient();
@@ -100,7 +103,7 @@ export function LaunchView() {
       });
       
       const txHash = result.hash;
-      const coinAddress = result.address || ("0x" + txHash.slice(2, 42)); // Fallback if needed
+      const deployedAddress = result.address || ("0x" + txHash.slice(2, 42)); // Fallback if needed
       console.log("Coin deployed, tx:", txHash);
 
       // Wait for receipt to ensure it's on-chain
@@ -113,30 +116,11 @@ export function LaunchView() {
       // We'll query getCreatedCoins and look for one with matching name/symbol or just the latest
       // A short delay might be needed for indexer to pick it up, but let's try immediately or fallback to just success message
       
-      let coinAddress = "";
-      
-      // Try to find the coin address
-      if (address) {
-          // Wait a bit for Zora indexer? 
-          // Actually, let's just use a placeholder if we can't find it, or try to find it.
-          // Realistically, Zora SDK indexer takes a few seconds.
-          // We can insert into Supabase with "PENDING" or similar if address is unknown, but table expects string.
-          // Let's try to fetch.
-          try {
-             // small delay
-             await new Promise(r => setTimeout(r, 2000));
-             // @ts-ignore
-             const created = await getCreatedCoins(address);
-             // Find the coin we just created (matching name/symbol)
-             const found = created?.find((c: any) => c.name === name && c.symbol === ticker);
-             if (found) {
-                 coinAddress = found.address || found.id;
-             }
-          } catch (e) {
-              console.error("Error fetching created coin:", e);
-          }
+      let coinAddress: string = '';
+      if (deployedAddress) {
+          coinAddress = deployedAddress;
       }
-
+      
       // 5. Add to Supabase
       const { error } = await supabase.from('graduated_coins').insert({
           coin_address: coinAddress || "0x0000000000000000000000000000000000000000", // Placeholder if not found yet
