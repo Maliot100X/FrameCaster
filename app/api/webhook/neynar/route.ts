@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { NeynarAPIClient, Configuration } from "@neynar/nodejs-sdk";
-import { createWalletClient, createPublicClient, http } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { base } from 'viem/chains';
-// @ts-ignore
-import { createCoin, CreateConstants } from '@zoralabs/coins-sdk';
 
 const config = new Configuration({
   apiKey: process.env.NEYNAR_API_KEY!,
@@ -37,55 +32,6 @@ export async function POST(req: NextRequest) {
             });
         } catch (e) {
             console.error("Reply error:", e);
-        }
-    };
-
-    // Helper to deploy
-    const deployCoin = async (name: string, ticker: string, imageUri: string, creatorAddress: string) => {
-        // If we are deploying on behalf of the user via bot wallet (e.g. from /launch command where user doesn't sign)
-        // Note: Ideally, for /launch, we might want the user to sign, but via webhook the bot signs.
-        // The user prompt implies the bot does it: "Deploy coin using Zora code above (use bot wallet if needed)"
-        
-        if (!process.env.DEPLOYER_PRIVATE_KEY) {
-            await reply("Error: Bot wallet not configured.");
-            return null;
-        }
-
-        try {
-            const account = privateKeyToAccount(process.env.DEPLOYER_PRIVATE_KEY as `0x${string}`);
-            const walletClient = createWalletClient({
-                account,
-                chain: base,
-                transport: http(process.env.BASE_RPC_URL)
-            });
-            const publicClient = createPublicClient({ 
-                chain: base, 
-                transport: http(process.env.BASE_RPC_URL) 
-            });
-
-            const args = {
-                creator: account.address, // Bot is creator on chain, but we attribute to user in DB
-                name: name,
-                symbol: ticker,
-                metadata: { type: "RAW_URI" as const, uri: imageUri },
-                currency: CreateConstants.ContentCoinCurrencies.ETH,
-                chainId: base.id,
-                startingMarketCap: CreateConstants.StartingMarketCaps.LOW,
-                platformReferrerAddress: process.env.NEXT_PUBLIC_PLATFORM_WALLET as `0x${string}`,
-            };
-
-            // @ts-ignore
-            const result = await createCoin({ call: args, walletClient, publicClient });
-            
-            const txHash = result.hash;
-            const coinAddress = result.address; // SDK might return address or we calculate/wait
-            
-            console.log(`Deployed coin: ${txHash}`);
-            return { txHash, coinAddress };
-        } catch (e: any) {
-            console.error("Deploy error:", e);
-            await reply(`Deploy failed: ${e.message}`);
-            return null;
         }
     };
 

@@ -113,11 +113,15 @@ export function ProfileView() {
   });
 
   const mapToCoin = (item: any): Coin => {
+    // Handle various Zora SDK response formats
+    const metadata = item.metadata || {};
+    const image = item.imageURI || item.image || item.tokenURI || metadata.image || metadata.imageURI || "";
+
     return {
       id: item.address || item.id,
       name: item.name || "Unknown",
       ticker: item.symbol || "UNK",
-      image: item.imageURI || item.image || item.tokenURI || "", 
+      image: image,
       marketCap: item.marketCap ? `$${Number(item.marketCap).toLocaleString()}` : 'N/A',
       holders: item.holderCount || 0,
       creator: {

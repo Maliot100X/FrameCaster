@@ -69,11 +69,15 @@ export function HomeView() {
   });
 
   const mapToCoin = (item: any, isBoosted = false): Coin => {
+    // Handle various Zora SDK response formats
+    const metadata = item.metadata || {};
+    const image = item.imageURI || item.image || item.tokenURI || metadata.image || metadata.imageURI || "https://framecaster-jade.vercel.app/vercel.svg";
+    
     return {
       id: item.address || item.id,
       name: item.name || "Unknown",
       ticker: item.symbol || "UNK",
-      image: item.imageURI || item.image || item.tokenURI || "https://framecaster-jade.vercel.app/vercel.svg", 
+      image: image,
       marketCap: item.marketCap ? `$${Number(item.marketCap).toLocaleString()}` : 'N/A',
       holders: item.holderCount || 0,
       creator: {
