@@ -102,36 +102,40 @@ export function MoreView() {
   const [selectedPlan, setSelectedPlan] = useState<'trial' | 'monthly'>('monthly');
 
   const handleSubscribe = () => {
-      const platformWallet = process.env.NEXT_PUBLIC_PLATFORM_WALLET;
-      if (!platformWallet) return;
-
-      const price = selectedPlan === 'trial' ? '1' : '19'; // $1 or $19
-
-      if (currency === 'ETH') {
-          // Approximate ETH prices (hardcoded for simplicity as per requirements)
-          const ethPrice = selectedPlan === 'trial' ? '0.0004' : '0.008';
-          sendTransaction({
-              to: platformWallet as `0x${string}`,
-              value: parseEther(ethPrice)
-          });
-      } else {
-          writeContract({
-              address: USDC_ADDRESS,
-              abi: ERC20_ABI,
-              functionName: 'transfer',
-              args: [platformWallet as `0x${string}`, parseUnits(price, 6)]
-          });
-      }
+     if (!address) return;
+     const amount = selectedPlan === 'trial' ? "0.0003" : "0.005"; // Approx $1 and $19
+     
+     if (currency === 'ETH') {
+         sendTransaction({
+             to: process.env.NEXT_PUBLIC_PLATFORM_WALLET as `0x${string}`,
+             value: parseEther(amount)
+         });
+     } else {
+         writeContract({
+             address: USDC_ADDRESS,
+             abi: ERC20_ABI,
+             functionName: 'transfer',
+             args: [process.env.NEXT_PUBLIC_PLATFORM_WALLET as `0x${string}`, parseUnits(selectedPlan === 'trial' ? "1" : "19", 6)]
+         });
+     }
   };
 
   return (
-    <div className="flex flex-col h-full p-4 space-y-6 overflow-y-auto pb-24">
-      <div className="space-y-2">
-        <h2 className="text-2xl font-bold">More</h2>
-        <p className="text-sm text-muted-foreground">
-          Additional tools and resources.
-        </p>
-      </div>
+    <div className="p-4 space-y-6 pb-24">
+      <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <Bot className="h-5 w-5 text-purple-500" />
+                Bot Assistant
+            </CardTitle>
+            <CardDescription>Chat with FrameCaster Bot to launch coins and more.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Button className="w-full bg-purple-600 hover:bg-purple-700" onClick={() => sdk.actions.openUrl(`https://warpcast.com/~/compose?text=@framecaster%20/start&embeds[]=${process.env.NEXT_PUBLIC_APP_URL}`)}>
+                <Bot className="mr-2 h-4 w-4" /> Start Chat
+            </Button>
+        </CardContent>
+      </Card>
 
       {/* Subscription Card */}
       <Card className="border-purple-500/20 bg-gradient-to-br from-purple-900/10 to-blue-900/10 overflow-hidden relative">

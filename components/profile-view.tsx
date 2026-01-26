@@ -90,7 +90,7 @@ export function ProfileView() {
     queryKey: ['coins', 'created', address],
     enabled: !!address,
     queryFn: async () => {
-        const res = await getCreatedCoins(address!);
+        const res = await getCoinsCreated(address!);
         return res;
     }
   });
