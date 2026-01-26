@@ -48,7 +48,7 @@ export async function fetchLatestCoins(count: number = 20): Promise<ZoraCoin[]> 
     // Map to friendly format
     return nodes.map((node: any) => ({
       ...node,
-      imageUrl: node.uri?.replace('ipfs://', 'https://ipfs.io/ipfs/') || "", // Simple resolve
+      imageUrl: node.imageUrl || node.uri?.replace('ipfs://', 'https://ipfs.io/ipfs/') || "", // Simple resolve
       marketCap: "0", // Indexer might not return this directly yet without extra queries
       holderCount: 0
     }));

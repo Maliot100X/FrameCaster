@@ -110,7 +110,7 @@ export function HomeView() {
             ) : newCoins && newCoins.length > 0 ? (
               newCoins.map((item: any) => <CoinCard key={item.address || item.id} coin={mapToCoin(item)} />)
             ) : (
-              <div className="text-center text-muted-foreground py-10">No coins yet.</div>
+              <div className="text-center text-muted-foreground py-10">No coins indexed yet.</div>
             )}
           </TabsContent>
 
@@ -120,7 +120,7 @@ export function HomeView() {
             ) : trendingCoins && trendingCoins.length > 0 ? (
               trendingCoins.map((item: any) => <CoinCard key={item.address || item.id} coin={mapToCoin(item)} />)
             ) : (
-              <div className="text-center text-muted-foreground py-10">No coins yet.</div>
+              <div className="text-center text-muted-foreground py-10">No coins indexed yet.</div>
             )}
           </TabsContent>
 

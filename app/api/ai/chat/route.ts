@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({
                 model: "gpt-4o",
                 messages: [
-                    { role: "system", content: "You are Forgecast AI, an expert on Zora, Farcaster, and Base. Help users launch coins and manage their portfolio." },
+                    { role: "system", content: "You are an AI assistant helping users design, prepare, and deploy Zora coins. You guide the user step by step but do not deploy coins yourself. You may reference Neynar user info if available." },
                     ...messages
                 ]
             })
