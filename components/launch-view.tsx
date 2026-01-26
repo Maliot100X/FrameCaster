@@ -26,6 +26,7 @@ export function LaunchView() {
   const [preview, setPreview] = useState<string | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
   const [fid, setFid] = useState<number>(0);
+  const [successData, setSuccessData] = useState<{address: string, txHash: string} | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
